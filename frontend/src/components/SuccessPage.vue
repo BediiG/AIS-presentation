@@ -2,7 +2,8 @@
   <div class="container mt-5 text-center">
     <h1 v-if="authenticated">Welcome, {{ username }}</h1>
     <p v-if="message" class="text-success">{{ message }}</p>
-    <div class="card mt-4">
+
+    <div v-if="!USE_COOKIES" class="card mt-4">
       <div class="card-body">
         <h5 class="card-title">Your Token Details</h5>
         <table class="table">
@@ -31,14 +32,16 @@
         </table>
       </div>
     </div>
+
     <button v-if="authenticated" @click="logout" class="btn btn-danger mt-3">Logout</button>
   </div>
 </template>
 
-
 <script>
 import { makeAuthenticatedRequest, refreshAccessToken } from "../auth";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
+
+const USE_COOKIES = false;
 
 export default {
   data() {
@@ -46,7 +49,8 @@ export default {
       authenticated: false,
       username: "",
       message: "",
-      tokenDetails: {}, // Store decoded token details
+      tokenDetails: {},
+      USE_COOKIES: USE_COOKIES, // expose to template
     };
   },
   async mounted() {
@@ -55,62 +59,65 @@ export default {
   methods: {
     async validateToken() {
       try {
-        let token = localStorage.getItem("access_token");
+        let token;
 
-        // If access token is missing, try refreshing it
-        if (!token) {
-          token = await refreshAccessToken();
+        if (!USE_COOKIES) {
+          token = localStorage.getItem("access_token");
+          if (!token) {
+            token = await refreshAccessToken();
+          }
         }
 
-        // Fetch user data using the access token
         const response = await makeAuthenticatedRequest({
           method: "GET",
-          url: "http://127.0.0.1:5000/protected",
+          url: "http://localhost:5000/protected",
         });
 
-        // Extract user info and token details
         this.authenticated = true;
         this.message = response.data.message;
-        this.username = response.data.message.split(" ")[1]; 
+        this.username = response.data.message.split(" ")[1];
 
-        // Decode the token to extract its details
-        this.tokenDetails = jwtDecode(token);
+        if (!USE_COOKIES && token) {
+          this.tokenDetails = jwtDecode(token);
+        }
       } catch (error) {
-        console.error("Error validating token:", error.response?.data || error.message);
+        console.error("Token validation failed:", error.response?.data || error.message);
         this.authenticated = false;
-
-        // Redirect to login if validation fails
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
+        this.clearTokens();
         this.$router.push("/");
       }
     },
     formatTimestamp(timestamp) {
-      // Convert UNIX timestamp to a human-readable format
-      const date = new Date(timestamp * 1000); // Multiply by 1000 to convert seconds to milliseconds
-      return date.toLocaleString(); // Format as local date and time
+      const date = new Date(timestamp * 1000);
+      return date.toLocaleString();
     },
-    calculateRemainingTime(expiration) {
-      const now = Math.floor(Date.now() / 1000); // Current time in seconds
-      const remaining = expiration - now;
-
-      if (remaining <= 0) {
-        return "Expired";
-      }
-
+    calculateRemainingTime(exp) {
+      const now = Math.floor(Date.now() / 1000);
+      const remaining = exp - now;
+      if (remaining <= 0) return "Expired";
       const minutes = Math.floor(remaining / 60);
       const seconds = remaining % 60;
       return `${minutes}m ${seconds}s`;
     },
     logout() {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
+      this.clearTokens();
       this.$router.push("/");
+    },
+    clearTokens() {
+      if (!USE_COOKIES) {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+      } else {
+        // For cookie-based logout, optionally call backend /logout endpoint
+        fetch("http://localhost:5000/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+      }
     },
   },
 };
 </script>
-
 
 <style>
 .container {

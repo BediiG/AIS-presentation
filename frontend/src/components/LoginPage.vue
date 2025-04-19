@@ -64,6 +64,8 @@
 import axios from "axios";
 import { refreshAccessToken } from "../auth";
 
+const USE_COOKIES = false;
+
 export default {
   data() {
     return {
@@ -76,38 +78,46 @@ export default {
     };
   },
   async mounted() {
-    const accessToken = localStorage.getItem("access_token");
-    const refreshToken = localStorage.getItem("refresh_token");
+    if (!USE_COOKIES) {
+      const accessToken = localStorage.getItem("access_token");
+      const refreshToken = localStorage.getItem("refresh_token");
 
-    if (accessToken) {
-      try {
-        // Validate the existing access token
-        await axios.get("http://127.0.0.1:5000/protected", {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-        this.$router.push("/success"); // Redirect to success page if valid
-      } catch {
-        if (refreshToken) {
-          try {
-            await refreshAccessToken(); // Refresh the access token
-            this.$router.push("/success"); // Redirect to success page
-          } catch (refreshError) {
-            console.error("Error refreshing token:", refreshError.response?.data || refreshError.message);
-            this.clearTokens(); // Clear tokens if refresh fails
+      if (accessToken) {
+        try {
+          await axios.get("http://localhost:5000/protected", {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+          this.$router.push("/success");
+        } catch {
+          if (refreshToken) {
+            try {
+              await refreshAccessToken();
+              this.$router.push("/success");
+            } catch (refreshError) {
+              this.clearTokens();
+            }
+          } else {
+            this.clearTokens();
           }
-        } else {
-          this.clearTokens(); // Clear tokens if neither token is valid
+        }
+      } else if (refreshToken) {
+        try {
+          await refreshAccessToken();
+          this.$router.push("/success");
+        } catch {
+          this.clearTokens();
         }
       }
-    } else if (refreshToken) {
+    } else {
       try {
-        await refreshAccessToken(); // Refresh the access token if only the refresh token exists
+        await axios.get("http://localhost:5000/protected", {
+          withCredentials: true,
+        });
         this.$router.push("/success");
-      } catch (refreshError) {
-        console.error("Error refreshing token:", refreshError.response?.data || refreshError.message);
-        this.clearTokens(); // Clear tokens if refresh fails
+      } catch {
+        // Not authenticated
       }
     }
   },
@@ -119,17 +129,23 @@ export default {
       }
       this.loading = true;
       try {
-        const response = await axios.post("http://127.0.0.1:5000/login", {
-          username: this.username,
-          password: this.password,
-        });
-        const { access_token, refresh_token } = response.data;
+        const response = await axios.post(
+          "http://localhost:5000/login",
+          {
+            username: this.username,
+            password: this.password,
+          },
+          {
+            withCredentials: USE_COOKIES,
+          }
+        );
 
-        // Save tokens in localStorage
-        localStorage.setItem("access_token", access_token);
-        localStorage.setItem("refresh_token", refresh_token);
+        if (!USE_COOKIES) {
+          const { access_token, refresh_token } = response.data;
+          localStorage.setItem("access_token", access_token);
+          localStorage.setItem("refresh_token", refresh_token);
+        }
 
-        // Redirect to success page
         this.$router.push("/success");
       } catch {
         this.error = "Invalid username or password";
@@ -144,12 +160,12 @@ export default {
       }
       this.loading = true;
       try {
-        const response = await axios.post("http://127.0.0.1:5000/register", {
+        const response = await axios.post("http://localhost:5000/register", {
           username: this.username,
           password: this.password,
         });
         if (response.status === 201) {
-          this.isSignup = false; // Switch to login after successful signup
+          this.isSignup = false;
         }
       } catch {
         this.error = "Username already exists or invalid data";
@@ -159,7 +175,7 @@ export default {
     },
     toggleSignup() {
       this.isSignup = !this.isSignup;
-      this.error = ""; // Clear errors when toggling
+      this.error = "";
     },
     clearTokens() {
       localStorage.removeItem("access_token");
@@ -168,7 +184,6 @@ export default {
   },
 };
 </script>
-
 
 <style>
 .container {
