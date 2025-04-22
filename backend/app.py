@@ -17,7 +17,7 @@ from datetime import timedelta
 
 # ========================
 # 🔁 Toggle Mode Here
-USE_COOKIES = False
+USE_COOKIES = True
 # ========================
 
 # Initialize app
@@ -36,7 +36,7 @@ if USE_COOKIES:
     app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token_cookie"
     app.config["JWT_REFRESH_COOKIE_NAME"] = "refresh_token_cookie"
     app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Enable in production
-    app.config["JWT_COOKIE_SECURE"] = False        # True in production with HTTPS
+    app.config["JWT_COOKIE_SECURE"] = True        # True in production with HTTPS
 else:
     app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 
@@ -49,7 +49,7 @@ jwt = JWTManager(app)
 CORS(
     app,
     supports_credentials=True,
-    resources={r"/*": {"origins": "http://localhost:5173"}},
+    resources={r"/*": {"origins": "https://localhost:5173"}},
     methods=["GET", "POST"],
     allow_headers=["Content-Type", "Authorization"]
 )
@@ -151,4 +151,4 @@ def logout():
         return jsonify({"message": "Logout: no cookies to clear"})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(ssl_context=("backend-cert.pem", "backend-key.pem"), port=5000)

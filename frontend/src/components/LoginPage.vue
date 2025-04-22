@@ -64,7 +64,7 @@
 import axios from "axios";
 import { refreshAccessToken } from "../auth";
 
-const USE_COOKIES = false;
+const USE_COOKIES = true;
 
 export default {
   data() {
@@ -84,7 +84,7 @@ export default {
 
       if (accessToken) {
         try {
-          await axios.get("http://localhost:5000/protected", {
+          await axios.get("https://localhost:5000/protected", {
             headers: {
               Authorization: `Bearer ${accessToken}`,
             },
@@ -112,7 +112,7 @@ export default {
       }
     } else {
       try {
-        await axios.get("http://localhost:5000/protected", {
+        await axios.get("https://localhost:5000/protected", {
           withCredentials: true,
         });
         this.$router.push("/success");
@@ -130,7 +130,7 @@ export default {
       this.loading = true;
       try {
         const response = await axios.post(
-          "http://localhost:5000/login",
+          "https://localhost:5000/login",
           {
             username: this.username,
             password: this.password,
@@ -160,7 +160,7 @@ export default {
       }
       this.loading = true;
       try {
-        const response = await axios.post("http://localhost:5000/register", {
+        const response = await axios.post("https://localhost:5000/register", {
           username: this.username,
           password: this.password,
         });

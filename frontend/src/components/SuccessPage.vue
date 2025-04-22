@@ -41,7 +41,7 @@
 import { makeAuthenticatedRequest, refreshAccessToken } from "../auth";
 import { jwtDecode } from "jwt-decode";
 
-const USE_COOKIES = false;
+const USE_COOKIES = true;
 
 export default {
   data() {
@@ -70,7 +70,7 @@ export default {
 
         const response = await makeAuthenticatedRequest({
           method: "GET",
-          url: "http://localhost:5000/protected",
+          url: "https://localhost:5000/protected",
         });
 
         this.authenticated = true;
@@ -109,7 +109,7 @@ export default {
         localStorage.removeItem("refresh_token");
       } else {
         // For cookie-based logout, optionally call backend /logout endpoint
-        fetch("http://localhost:5000/logout", {
+        fetch("https://localhost:5000/logout", {
           method: "POST",
           credentials: "include",
         });

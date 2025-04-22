@@ -1,13 +1,13 @@
 import axios from "axios";
 
 // 🔁 Toggle between token-in-header vs. cookie-based authentication
-const USE_COOKIES = false;
+const USE_COOKIES = true;
 
 export async function refreshAccessToken() {
   if (USE_COOKIES) {
     try {
       // Hit the refresh endpoint using cookies
-      await axios.post("http://localhost:5000/refresh", null, {
+      await axios.post("https://localhost:5000/refresh", null, {
         withCredentials: true,
       });
     } catch (error) {
@@ -21,7 +21,7 @@ export async function refreshAccessToken() {
         throw new Error("Refresh token is missing");
       }
 
-      const response = await axios.post("http://localhost:5000/refresh", null, {
+      const response = await axios.post("https://localhost:5000/refresh", null, {
         headers: {
           Authorization: `Bearer ${refreshToken}`,
         },
