@@ -13,7 +13,8 @@ from flask_jwt_extended import (
     set_refresh_cookies,
     unset_jwt_cookies
 )
-from datetime import timedelta
+from datetime import timedelta, datetime
+import re
 
 # ========================
 # 🔁 Toggle Mode Here
@@ -54,12 +55,28 @@ CORS(
     allow_headers=["Content-Type", "Authorization"]
 )
 
+# Password strength checker
+def is_password_strong(password):
+    errors = []
+    if len(password) < 8:
+        errors.append("at least 8 characters")
+    if not re.search(r'[A-Z]', password):
+        errors.append("one uppercase letter")
+    if not re.search(r'[a-z]', password):
+        errors.append("one lowercase letter")
+    if not re.search(r'\d', password):
+        errors.append("one digit")
+    if not re.search(r'\W', password):
+        errors.append("one special character")
+    return errors
 
 # User model
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
+    failed_attempts = db.Column(db.Integer, default=0)
+    last_failed_time = db.Column(db.DateTime, default=None)
 
 # Initialize the database
 with app.app_context():
@@ -74,6 +91,13 @@ def register():
 
     if not username or not password:
         return jsonify({"message": "Username and password are required"}), 400
+
+    password_errors = is_password_strong(password)
+    if password_errors:
+        return jsonify({
+            "message": "Password is too weak.",
+            "requirements": password_errors
+        }), 400
 
     if User.query.filter_by(username=username).first():
         return jsonify({"message": "User already exists"}), 409
@@ -97,24 +121,42 @@ def login():
 
     user = User.query.filter_by(username=username).first()
 
-    if user and bcrypt.check_password_hash(user.password, password):
-        additional_claims = {"username": user.username}
-        access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
-        refresh_token = create_refresh_token(identity=str(user.id), additional_claims=additional_claims)
+    LOCKOUT_THRESHOLD = 5
+    LOCKOUT_TIME = timedelta(minutes=10)
 
-        if USE_COOKIES:
-            response = jsonify({"message": "Login successful (cookie mode)"})
-            set_access_cookies(response, access_token)
-            set_refresh_cookies(response, refresh_token)
-            return response
+    if user:
+        if user.failed_attempts >= LOCKOUT_THRESHOLD:
+            if datetime.utcnow() - user.last_failed_time < LOCKOUT_TIME:
+                return jsonify({"message": "Account temporarily locked. Try again later."}), 403
+            else:
+                user.failed_attempts = 0
+                db.session.commit()
+
+        if bcrypt.check_password_hash(user.password, password):
+            user.failed_attempts = 0
+            db.session.commit()
+            additional_claims = {"username": user.username}
+            access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
+            refresh_token = create_refresh_token(identity=str(user.id), additional_claims=additional_claims)
+
+            if USE_COOKIES:
+                response = jsonify({"message": "Login successful (cookie mode)"})
+                set_access_cookies(response, access_token)
+                set_refresh_cookies(response, refresh_token)
+                return response
+            else:
+                return jsonify({
+                    "message": "Login successful",
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                })
         else:
-            return jsonify({
-                "message": "Login successful",
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-            })
-    else:
-        return jsonify({"message": "Invalid username or password"}), 401
+            user.failed_attempts += 1
+            user.last_failed_time = datetime.utcnow()
+            db.session.commit()
+            return jsonify({"message": "Invalid username or password"}), 401
+
+    return jsonify({"message": "Invalid username or password"}), 401
 
 # Refresh token route
 @app.route("/refresh", methods=["POST"])

@@ -154,25 +154,32 @@ export default {
       }
     },
     async signup() {
-      if (!this.username || !this.password) {
-        this.error = "Both username and password are required.";
-        return;
-      }
-      this.loading = true;
-      try {
-        const response = await axios.post("https://localhost:5000/register", {
-          username: this.username,
-          password: this.password,
-        });
-        if (response.status === 201) {
-          this.isSignup = false;
-        }
-      } catch {
-        this.error = "Username already exists or invalid data";
-      } finally {
-        this.loading = false;
-      }
-    },
+  if (!this.username || !this.password) {
+    this.error = "Both username and password are required.";
+    return;
+  }
+  this.loading = true;
+  try {
+    const response = await axios.post("https://localhost:5000/register", {
+      username: this.username,
+      password: this.password,
+    });
+
+    if (response.status === 201) {
+      this.isSignup = false;
+      this.error = "";
+    }
+  } catch (err) {
+    const backend = err.response?.data;
+    if (backend?.requirements) {
+      this.error = `${backend.message}: ${backend.requirements.join(", ")}`;
+    } else {
+      this.error = backend?.message || "Registration failed.";
+    }
+  } finally {
+    this.loading = false;
+  }
+},
     toggleSignup() {
       this.isSignup = !this.isSignup;
       this.error = "";
