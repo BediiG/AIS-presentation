@@ -64,6 +64,8 @@
 import axios from "axios";
 import { refreshAccessToken } from "../auth";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const USE_COOKIES = true;
 
 export default {
@@ -84,7 +86,7 @@ export default {
 
       if (accessToken) {
         try {
-          await axios.get("https://localhost:5000/protected", {
+          await axios.get(`${BACKEND_URL}/protected`, {
             headers: {
               Authorization: `Bearer ${accessToken}`,
             },
@@ -112,7 +114,7 @@ export default {
       }
     } else {
       try {
-        await axios.get("https://localhost:5000/protected", {
+        await axios.get(`${BACKEND_URL}/protected`, {
           withCredentials: true,
         });
         this.$router.push("/success");
@@ -130,7 +132,7 @@ export default {
       this.loading = true;
       try {
         const response = await axios.post(
-          "https://localhost:5000/login",
+          `${BACKEND_URL}/login`,
           {
             username: this.username,
             password: this.password,
@@ -154,32 +156,41 @@ export default {
       }
     },
     async signup() {
-  if (!this.username || !this.password) {
-    this.error = "Both username and password are required.";
-    return;
-  }
-  this.loading = true;
-  try {
-    const response = await axios.post("https://localhost:5000/register", {
-      username: this.username,
-      password: this.password,
-    });
+      if (!this.username || !this.password) {
+        this.error = "Both username and password are required.";
+        return;
+      }
+      this.loading = true;
+      try {
+        const response = await axios.post(
+          `${BACKEND_URL}/register`,
+          {
+            username: this.username,
+            password: this.password,
+          },
+          { withCredentials: true }
+        );
 
-    if (response.status === 201) {
-      this.isSignup = false;
-      this.error = "";
-    }
-  } catch (err) {
-    const backend = err.response?.data;
-    if (backend?.requirements) {
-      this.error = `${backend.message}: ${backend.requirements.join(", ")}`;
-    } else {
-      this.error = backend?.message || "Registration failed.";
-    }
-  } finally {
-    this.loading = false;
-  }
-},
+        if (response.status === 201) {
+          this.isSignup = false;
+          this.error = "";
+        }
+      } catch (error) {
+        if (error.response) {
+          if (error.response.data.requirements) {
+            this.error = "Weak password: " + error.response.data.requirements.join(", ");
+          } else if (error.response.data.message) {
+            this.error = error.response.data.message;
+          } else {
+            this.error = "An unexpected error occurred.";
+          }
+        } else {
+          this.error = "Cannot reach server.";
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
     toggleSignup() {
       this.isSignup = !this.isSignup;
       this.error = "";

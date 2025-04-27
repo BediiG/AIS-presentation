@@ -42,6 +42,7 @@ import { makeAuthenticatedRequest, refreshAccessToken } from "../auth";
 import { jwtDecode } from "jwt-decode";
 
 const USE_COOKIES = true;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL; // ✅ Load from .env
 
 export default {
   data() {
@@ -70,7 +71,7 @@ export default {
 
         const response = await makeAuthenticatedRequest({
           method: "GET",
-          url: "https://localhost:5000/protected",
+          url: "/protected", // ✅ Relative path here, backend URL will be prefixed inside auth.js
         });
 
         this.authenticated = true;
@@ -108,8 +109,8 @@ export default {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
       } else {
-        // For cookie-based logout, optionally call backend /logout endpoint
-        fetch("https://localhost:5000/logout", {
+        // For cookie-based logout, call /logout on the backend
+        fetch(`${BACKEND_URL}/logout`, {
           method: "POST",
           credentials: "include",
         });
