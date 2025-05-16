@@ -42,7 +42,7 @@ import { makeAuthenticatedRequest, refreshAccessToken } from "../auth";
 import { jwtDecode } from "jwt-decode";
 
 const USE_COOKIES = true;
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL; // ✅ Load from .env
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL; // Load from .env
 
 export default {
   data() {
@@ -59,35 +59,37 @@ export default {
   },
   methods: {
     async validateToken() {
-      try {
-        let token;
+  try {
+    let token;
 
-        if (!USE_COOKIES) {
-          token = localStorage.getItem("access_token");
-          if (!token) {
-            token = await refreshAccessToken();
-          }
-        }
-
-        const response = await makeAuthenticatedRequest({
-          method: "GET",
-          url: "/protected", // ✅ Relative path here, backend URL will be prefixed inside auth.js
-        });
-
-        this.authenticated = true;
-        this.message = response.data.message;
-        this.username = response.data.message.split(" ")[1];
-
-        if (!USE_COOKIES && token) {
-          this.tokenDetails = jwtDecode(token);
-        }
-      } catch (error) {
-        console.error("Token validation failed:", error.response?.data || error.message);
-        this.authenticated = false;
-        this.clearTokens();
-        this.$router.push("/");
+    if (!USE_COOKIES) {
+      token = localStorage.getItem("access_token");
+      if (!token) {
+        token = await refreshAccessToken();
       }
-    },
+    } else {
+      await refreshAccessToken();
+    }
+
+    const response = await makeAuthenticatedRequest({
+      method: "GET",
+      url: "/protected",
+    });
+
+    this.authenticated = true;
+    this.message = response.data.message;
+    this.username = response.data.message.split(" ")[1];
+
+    if (!USE_COOKIES && token) {
+      this.tokenDetails = jwtDecode(token);
+    }
+  } catch (error) {
+    console.error("Token validation failed:", error.response?.data || error.message);
+    this.authenticated = false;
+    this.clearTokens();
+    this.$router.push("/");
+  }
+},
     formatTimestamp(timestamp) {
       const date = new Date(timestamp * 1000);
       return date.toLocaleString();

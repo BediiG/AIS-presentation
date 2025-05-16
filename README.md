@@ -1,205 +1,85 @@
-# JWT Authentication App
+# Secure Auth Demo – Final Version
 
-This is a demonstration project showcasing JWT-based authentication using a **Flask** backend and a **Vue.js** frontend. The app provides user registration, login, and access to a protected success page, with token-based authentication and refresh token functionality.
+This project is a complete demonstration of secure authentication and session management best practices using **Flask** (backend) and **Vue 3** (frontend). Originally developed as a hands-on lab for the **Advanced Information Security** course at UKIM, this finished version implements OWASP-compliant techniques and production-ready session flows.
 
 ---
 
 ## Features
 
-1. **User Authentication**:
-   - Register with a username and password.
-   - Login to receive **Access** and **Refresh Tokens**.
-
-2. **Token Management**:
-   - **Access Token**: Used for accessing protected resources (short-lived).
-   - **Refresh Token**: Used to obtain a new access token when the current one expires (long-lived).
-
-3. **Protected Routes**:
-   - Access the success page only with a valid access token.
-   - Automatically refresh access tokens when expired.
-
-4. **Informative Success Page**:
-   - Displays decoded token details:
-     - Issued At 
-     - Expiration Time
-     - Remaining Time
-     - Subject/User ID
-
-5. **Token Refresh Flow**:
-   - Automatically refreshes expired access tokens using the refresh token.
+- User registration with password strength validation
+- Password hashing with bcrypt
+- Account lockout after multiple failed login attempts
+- Stateless session handling using JWT:
+  - Access and refresh token issuance
+  - Token refresh and expiration
+  - Secure logout via cookie invalidation
+- Secure cookies for storing JWTs (HTTP-only)
+- HTTPS support with self-signed certificates
+- CORS setup with credential handling
 
 ---
 
 ## Tech Stack
 
-### Backend
-- **Flask**
-- **Flask-JWT-Extended**
-- **Flask-SQLAlchemy**
-- **Flask-CORS**
-- **Bcrypt** for password hashing
-
-### Frontend
-- **Vue.js** (with `vue-router`)
-- **Bootstrap 5** for styling
-- **jwt-decode** for decoding tokens in the frontend
-- **Axios** for HTTP requests
+- **Backend:** Flask, Flask-JWT-Extended, SQLAlchemy, Flask-Bcrypt
+- **Frontend:** Vue 3, Vite, Axios
+- **Security:** JWT, Secure Cookies, HTTPS, Password Hashing
+- **Config:** Environment variable loading with `python-dotenv`
 
 ---
 
-## Installation Instructions
+## Getting Started
 
-### 1. Backend Setup
-Navigate to the `login-jwt-backend` folder:
+### 1. Clone the project
 
 ```bash
-cd login-jwt-backend
+git clone https://github.com/your-username/secure-auth-demo-final.git
+cd secure-auth-demo-final
 ```
 
-Install the required Python dependencies:
+### 2. Set up the backend
 
 ```bash
-pip install flask flask-bcrypt flask-jwt-extended flask-sqlalchemy flask-cors
-```
-
-Run the Flask app:
-
-```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate  # On Windows
+pip install -r requirements.txt
 python app.py
 ```
 
-The backend will be available at [http://127.0.0.1:5000](http://127.0.0.1:5000).
-
----
-
-### 2. Frontend Setup
-Navigate to the `login-jwt` folder:
+### 3. Set up the frontend
 
 ```bash
-cd login-jwt
-```
-
-Install the required npm dependencies:
-
-```bash
+cd frontend
 npm install
-```
-
-Run the Vue.js app:
-
-```bash
 npm run dev
 ```
 
-The frontend will be available at [http://localhost:5173](http://localhost:5173).
+---
+
+## Access the App
+
+- Frontend: [https://localhost:5173](https://localhost:5173)
+- Backend API: [https://localhost:5000](https://localhost:5000)
+
+> Note: Accept browser warnings for self-signed HTTPS certificates during local development.
 
 ---
 
-## Usage
+## Environment Variables
 
-### 1. Sign Up
-- Open the app at [http://localhost:5173](http://localhost:5173).
-- Click "Sign Up" and create a new user account.
+Create a `.env` file in the root directory:
 
-### 2. Login
-- Log in using the username and password.
-- On successful login, you’ll be redirected to the success page.
+```env
+SECRET_KEY=your_flask_secret
+JWT_SECRET_KEY=your_jwt_secret
+DATABASE_URL=sqlite:///auth.db
+```
 
-### 3. Success Page
-- Displays the following:
-  - Username
-  - Human-readable token issuance and expiry times
-  - Remaining time for token expiration
-  - User ID (from token payload)
-
-### 4. Logout
-- Click the **Logout** button to clear tokens and return to the login page.
+You can also refer to `.env.example` for the required variables.
 
 ---
 
-## Token Behavior
+## License
 
-### Access Token
-- **Duration**: Short-lived (e.g., 1 minute for demonstration purposes).
-- **Usage**: Sent with `Authorization: Bearer` header for protected routes.
-
-### Refresh Token
-- **Duration**: Long-lived (e.g., 5 minutes for demonstration purposes).
-- **Usage**: Used to request a new access token when the current one expires.
-
----
-
-## Token Refresh Flow
-
-1. When accessing a protected route:
-   - If the **access token** is valid, access is granted.
-   - If the **access token** is expired, the app sends the **refresh token** to the `/refresh` endpoint to obtain a new access token.
-2. The app automatically retries the protected route with the new access token.
-
----
-
-## Key Endpoints
-
-### 1. `/register` (POST)
-**Description**: Register a new user.  
-**Request Body**:
-```json
-{
-  "username": "example",
-  "password": "password123"
-}
-```
-**Response**:
-```json
-{
-  "message": "User created successfully"
-}
-```
-
-### 2. `/login` (POST)
-**Description**: Authenticate a user and receive tokens.  
-**Request Body**:
-```json
-{
-  "username": "example",
-  "password": "password123"
-}
-```
-**Response**:
-```json
-{
-  "message": "Login successful",
-  "access_token": "<access_token>",
-  "refresh_token": "<refresh_token>"
-}
-```
-
-### 3. `/protected` (GET)
-**Description**: Access a protected route with a valid access token.  
-**Headers**:
-```http
-Authorization: Bearer <access_token>
-```
-**Response**:
-```json
-{
-  "message": "Hello username, welcome to the success page!"
-}
-```
-
-### 4. `/refresh` (POST)
-**Description**: Obtain a new access token using a refresh token.  
-**Headers**:
-```http
-Authorization: Bearer <refresh_token>
-```
-**Response**:
-```json
-{
-  "access_token": "<new_access_token>"
-}
-```
-
-
-
-
+This project is developed for educational purposes and follows OWASP guidelines for secure session management.

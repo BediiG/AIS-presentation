@@ -15,17 +15,20 @@ from flask_jwt_extended import (
 )
 from datetime import timedelta, datetime
 import re
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 # ========================
-# 🔁 Toggle Mode Here
+# Toggle Mode Here
 USE_COOKIES = True
 # ========================
 
 # Initialize app
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///auth.db"
-app.config["SECRET_KEY"] = "your_secret_key"
-app.config["JWT_SECRET_KEY"] = "your_jwt_secret_key"
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 
 # Token expiration settings
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(seconds=36000)
@@ -37,7 +40,8 @@ if USE_COOKIES:
     app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token_cookie"
     app.config["JWT_REFRESH_COOKIE_NAME"] = "refresh_token_cookie"
     app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Enable in production
-    app.config["JWT_COOKIE_SECURE"] = True        # True in production with HTTPS
+    app.config["JWT_COOKIE_SECURE"] = False       # True in production with HTTPS
+    app.config["JWT_COOKIE_SAMESITE"] = "None"
 else:
     app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 
